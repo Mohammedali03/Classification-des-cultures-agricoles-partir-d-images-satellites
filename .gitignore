@@ -1,5 +1,8 @@
 .venv/
 venv/
 data/
+EuroSAT/
+wsl_venv/
+venvScriptsactivate/
 __pycache__/
 *.pyc

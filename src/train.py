@@ -1,18 +1,26 @@
+import os
+
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
+
 import tensorflow as tf
 from tensorflow.keras import layers, models, callbacks
-from tensorflow.keras.applications import MobileNetV2
-from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
-import os
+from tensorflow.keras.applications import ResNet50
+from tensorflow.keras.applications.resnet50 import preprocess_input
 import json
 import matplotlib.pyplot as plt
 
 # ─── CONFIG ─────────────────────────────
-DATA_DIR   = r"C:\Users\FSBM-SERV\Desktop\agri_classification\data\EuroSAT"
-IMG_SIZE   = (224, 224)
-BATCH_SIZE = 32
-EPOCHS     = 20
+BASE_DIR         = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEFAULT_DATA_DIR = os.path.join(BASE_DIR, "EuroSAT", "2750")
+DATA_DIR         = os.environ.get("EUROSAT_DATA_DIR", DEFAULT_DATA_DIR)
+IMG_SIZE         = (224, 224)
+BATCH_SIZE       = int(os.environ.get("BATCH_SIZE", "4"))
+EPOCHS           = 15
+FINE_TUNE_EPOCHS = 10
 
 os.makedirs("models", exist_ok=True)
+
+tf.get_logger().setLevel("ERROR")
 
 # ─── GPU ────────────────────────────────
 gpus = tf.config.list_physical_devices('GPU')
@@ -26,7 +34,14 @@ if gpus:
 else:
     print("❌ No GPU — running on CPU")
 
+if not os.path.isdir(DATA_DIR):
+    raise FileNotFoundError(
+        f"Dataset directory not found: {DATA_DIR}\n"
+        "Set EUROSAT_DATA_DIR or place the dataset under EuroSAT/2750."
+    )
+
 # ─── LOAD DATASET ───────────────────────
+print(f"[DATA] Loading dataset from: {DATA_DIR}")
 train_ds = tf.keras.utils.image_dataset_from_directory(
     DATA_DIR,
     validation_split=0.2,
@@ -35,6 +50,8 @@ train_ds = tf.keras.utils.image_dataset_from_directory(
     image_size=IMG_SIZE,
     batch_size=BATCH_SIZE
 )
+
+print("[DATA] Building validation split")
 
 val_ds = tf.keras.utils.image_dataset_from_directory(
     DATA_DIR,
@@ -68,10 +85,14 @@ data_augmentation = tf.keras.Sequential([
 ], name="data_augmentation")
 
 AUTOTUNE = tf.data.AUTOTUNE
+MAP_PARALLEL_CALLS = int(os.environ.get("MAP_PARALLEL_CALLS", "1"))
+PREFETCH_BUFFER = int(os.environ.get("PREFETCH_BUFFER", "1"))
+
+print("[DATA] Preparing augmentation and preprocessing pipeline")
 
 def augment_and_preprocess(x, y):
     x = data_augmentation(x, training=True)
-    x = preprocess_input(x)   # MobileNetV2 normalization [-1, 1]
+    x = preprocess_input(x)   # ResNet50 normalization
     return x, y
 
 def preprocess_only(x, y):
@@ -79,20 +100,20 @@ def preprocess_only(x, y):
     return x, y
 
 train_ds = (train_ds
-            .cache()
             .shuffle(1000)
-            .map(augment_and_preprocess, num_parallel_calls=AUTOTUNE)
-            .prefetch(AUTOTUNE))
+                        .map(augment_and_preprocess, num_parallel_calls=MAP_PARALLEL_CALLS)
+                        .prefetch(PREFETCH_BUFFER))
 
 val_ds = (val_ds
-          .cache()
-          .map(preprocess_only, num_parallel_calls=AUTOTUNE)
-          .prefetch(AUTOTUNE))
+                    .map(preprocess_only, num_parallel_calls=MAP_PARALLEL_CALLS)
+                    .prefetch(PREFETCH_BUFFER))
+
+print("[DATA] Dataset pipeline ready")
 
 # ─── MODEL ──────────────────────────────
 # ✅ FIX: الموديل يستقبل الصور مباشرة بدون أي preprocessing داخله
 
-base_model = MobileNetV2(
+base_model = ResNet50(
     input_shape=(*IMG_SIZE, 3),
     include_top=False,
     weights="imagenet"
@@ -150,18 +171,22 @@ history1 = model.fit(
     train_ds,
     validation_data=val_ds,
     epochs=EPOCHS,
-    callbacks=cbs
+    callbacks=cbs,
+    verbose=1
 )
 
 # ─── PHASE 2: Fine-tuning ────────────────
 print("\n🔥 Phase 2 — Fine-Tuning (last 30 layers)\n")
 
 base_model.trainable = True
-for layer in base_model.layers[:-30]:
+for layer in base_model.layers[:-40]:
     layer.trainable = False
+for layer in base_model.layers[-40:]:
+    if isinstance(layer, layers.BatchNormalization):
+        layer.trainable = False
 
 model.compile(
-    optimizer=tf.keras.optimizers.Adam(learning_rate=3e-4),
+    optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
     loss="sparse_categorical_crossentropy",
     metrics=["accuracy"]
 )
@@ -169,13 +194,19 @@ model.compile(
 history2 = model.fit(
     train_ds,
     validation_data=val_ds,
-    epochs=10,
-    callbacks=cbs
+    epochs=FINE_TUNE_EPOCHS,
+    callbacks=cbs,
+    verbose=1
 )
 
 # ─── SAVE ───────────────────────────────
 model.save("models/final_model.keras")
 print("\n✅ final_model.keras saved!")
+
+history = {key: history1.history[key] + history2.history[key] for key in history1.history.keys()}
+with open("models/history.json", "w") as f:
+    json.dump(history, f, indent=2)
+print("📝 history.json saved!")
 
 # ─── TRAINING CURVES ────────────────────
 def merge(h1, h2, key):

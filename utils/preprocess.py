@@ -11,7 +11,7 @@ PFE Licence d'excellence en IA
 import numpy as np
 from PIL import Image
 import tensorflow as tf
-from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
+from tensorflow.keras.applications.resnet50 import preprocess_input
 import json
 import os
 
@@ -71,12 +71,12 @@ def load_model_and_classes(
 
 def preprocess_image(image: Image.Image) -> np.ndarray:
     """
-    Prépare une image PIL pour l'inférence MobileNetV2.
+    Prépare une image PIL pour l'inférence ResNet50.
 
     Pipeline:
         1. Conversion RGB
         2. Redimensionnement → 224×224 (LANCZOS)
-        3. preprocess_input MobileNetV2 → pixels dans [-1, 1]   ← ✅ UNE SEULE FOIS
+        3. preprocess_input ResNet50 → pixels normalisés         ← ✅ UNE SEULE FOIS
         4. Ajout dimension batch → (1, 224, 224, 3)
 
     ⚠️  NE PAS appeler preprocess_input en dehors de cette fonction,

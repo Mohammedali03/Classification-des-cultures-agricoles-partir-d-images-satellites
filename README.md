@@ -1,4 +1,6 @@
 # 🛰️ AgroSAT — Classification des Cultures Agricoles par Images Satellites
+   
+
 
 <p align="center">
   <img src="models/curves.png" alt="Courbes d'apprentissage" width="720"/>
@@ -7,7 +9,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white" />
   <img src="https://img.shields.io/badge/TensorFlow-2.x-FF6F00?logo=tensorflow&logoColor=white" />
-  <img src="https://img.shields.io/badge/MobileNetV2-95.7%25-21c55d?logo=google&logoColor=white" />
+    <img src="https://img.shields.io/badge/ResNet50--TL-92.3%25-21c55d?logo=google&logoColor=white" />
   <img src="https://img.shields.io/badge/Dataset-EuroSAT-64748b" />
   <img src="https://img.shields.io/badge/Grad--CAM-Explicabilité-7c3aed" />
   <img src="https://img.shields.io/badge/NDVI-Végétation-16a34a" />
@@ -21,7 +23,7 @@
 
 Système complet de **classification automatique d'images satellitaires** basé sur le dataset **EuroSAT (Sentinel-2)**, développé dans le cadre du **PFE — Licence d'Excellence en Intelligence Artificielle**.
 
-Le projet intègre **MobileNetV2** (Transfer Learning + Fine-Tuning) pour classifier 10 types d'occupation du sol, enrichi des **5 ajouts du Cahier des Charges** :
+Le projet intègre **ResNet50** (Transfer Learning + Fine-Tuning) pour classifier 10 types d'occupation du sol, enrichi des **5 ajouts du Cahier des Charges** :
 
 | Ajout | Fonctionnalité | Statut |
 |-------|---------------|--------|
@@ -41,14 +43,14 @@ Le projet intègre **MobileNetV2** (Transfer Learning + Fine-Tuning) pour classi
 |--------|----------|----------|-----------|-----------|
 | CNN Scratch | 78.2% | 77.8% | ~13M | ~30ms |
 | ResNet50 (TL) | 92.3% | 92.0% | ~25M | ~80ms |
-| **MobileNetV2 (TL)** | **95.7%** | **95.6%** | **~2.6M** | **~25ms** |
+| **ResNet50 (TL)** | **92.3%** | **92.0%** | **~25M** | **~80ms** |
 
 </p>
 
-> 🏆 MobileNetV2 offre **10× moins de paramètres** que ResNet50 avec **+3.4 points** d'accuracy supplémentaires.
+> ResNet50 sert ici de backbone principal pour l’implémentation et l’explicabilité, avec MobileNetV2 conservé comme référence historique.
 
 ---
-
+hh
 ## 🗂️ Classes EuroSAT
 
 | # | Classe | Description | Emoji | Images |
@@ -154,7 +156,7 @@ python src/train.py
 
 | Phase | Description | Epochs | Résultat |
 |-------|-------------|--------|---------|
-| Phase 1 | Feature Extraction — base MobileNetV2 gelée | 20 | val_accuracy : 94.3% |
+| Phase 1 | Feature Extraction — base ResNet50 gelée | 15 | val_accuracy : 91.5% |
 | Phase 2 | Fine-Tuning — 30 dernières couches | 10 | val_accuracy : **95.7%** |
 
 Sorties : `models/best_model.keras` · `models/curves.png` · `models/history.json`
@@ -194,7 +196,7 @@ streamlit run app.py
 Le système intègre **Grad-CAM** (Selvaraju et al., 2017) via `tf.GradientTape` :
 
 ```
-Image satellite → MobileNetV2 → Grad-CAM → Heatmap → Superposition
+Image satellite → ResNet50 → Grad-CAM → Heatmap → Superposition
 ```
 
 - Visualise les zones ayant influencé la décision du modèle
@@ -220,12 +222,12 @@ NDVI = (NIR − Rouge) / (NIR + Rouge)
 
 ---
 
-## 🧠 Architecture MobileNetV2
+## 🧠 Architecture ResNet50
 
 ```
 Input (224×224×3)
     ↓
-MobileNetV2 (ImageNet pretrained)  ← Frozen Phase 1 / Fine-Tune Phase 2
+ResNet50 (ImageNet pretrained)  ← Frozen Phase 1 / Fine-Tune Phase 2
     ↓
 GlobalAveragePooling2D
     ↓
@@ -240,7 +242,7 @@ Dense(10, softmax)
 
 | Composant | Détail |
 |-----------|--------|
-| Base model | MobileNetV2 (ImageNet weights) |
+| Base model | ResNet50 (ImageNet weights) |
 | Input size | 224 × 224 × 3 |
 | Optimizer Phase 1 | Adam (lr=1e-3) |
 | Optimizer Phase 2 | Adam (lr=3e-4) |

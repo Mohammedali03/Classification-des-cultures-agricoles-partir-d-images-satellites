@@ -24,15 +24,16 @@ from sklearn.metrics import (
     f1_score,
 )
 
-from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
+from tensorflow.keras.applications.resnet50 import preprocess_input
 
 # ───────────────── CONFIG ─────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 MODEL_PATH   = os.path.join(BASE_DIR, "models", "best_model.keras")
 CLASSES_PATH = os.path.join(BASE_DIR, "models", "class_indices.json")
-DATA_DIR     = os.path.join(BASE_DIR, "data", "EuroSAT")
 RESULTS_DIR  = os.path.join(BASE_DIR, "models", "evaluation")
+DEFAULT_DATA_DIR = os.path.join(BASE_DIR, "EuroSAT", "2750")
+DATA_DIR = os.environ.get("EUROSAT_DATA_DIR", DEFAULT_DATA_DIR)
 
 IMG_SIZE   = (224, 224)
 BATCH_SIZE = 32
