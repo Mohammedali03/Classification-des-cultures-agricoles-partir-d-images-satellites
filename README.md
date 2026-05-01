@@ -284,12 +284,6 @@ scipy
 
 ---
 
-## 👨‍💻 Auteur
-
-**Taha ELBASRY**
-Étudiant en Licence d'Excellence — Intelligence Artificielle
-Faculté des Sciences Ben M'Sik — Université Hassan II, Casablanca
-Année universitaire 2025–2026
 
 ---
 
