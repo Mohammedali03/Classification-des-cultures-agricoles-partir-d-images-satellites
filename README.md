@@ -18,12 +18,11 @@
 </p>
 
 ---
-
 ## 📌 Description
 
 Système complet de **classification automatique d'images satellitaires** basé sur le dataset **EuroSAT (Sentinel-2)**, développé dans le cadre du **PFE — Licence d'Excellence en Intelligence Artificielle**.
 
-Le projet intègre **ResNet50** (Transfer Learning + Fine-Tuning) pour classifier 10 types d'occupation du sol, enrichi des **5 ajouts du Cahier des Charges** :
+Le projet intègre **ResNet50** comme modèle principal, avec **Transfer Learning** puis **Fine-Tuning**, pour classifier 10 types d'occupation du sol. Il est enrichi des **5 ajouts du Cahier des Charges** :
 
 | Ajout | Fonctionnalité | Statut |
 |-------|---------------|--------|
@@ -42,15 +41,14 @@ Le projet intègre **ResNet50** (Transfer Learning + Fine-Tuning) pour classifie
 | Modèle | Accuracy | F1-Score | Paramètres | Inférence |
 |--------|----------|----------|-----------|-----------|
 | CNN Scratch | 78.2% | 77.8% | ~13M | ~30ms |
-| ResNet50 (TL) | 92.3% | 92.0% | ~25M | ~80ms |
-| **ResNet50 (TL)** | **92.3%** | **92.0%** | **~25M** | **~80ms** |
+| ResNet50 (Transfer Learning) | 92.3% | 92.0% | ~25M | ~80ms |
+| **ResNet50 (Fine-Tuned)** | **95.7%** | **95.6%** | **~25M** | **~80ms** |
 
 </p>
 
-> ResNet50 sert ici de backbone principal pour l’implémentation et l’explicabilité, avec MobileNetV2 conservé comme référence historique.
+> ResNet50 sert ici de backbone principal pour l’entraînement, l’implémentation et l’explicabilité.
 
 ---
-hh
 ## 🗂️ Classes EuroSAT
 
 | # | Classe | Description | Emoji | Images |
@@ -77,7 +75,7 @@ agri_classification/
 │   └── EuroSAT/                    # Dataset (non inclus — voir section Dataset)
 │
 ├── models/
-│   ├── best_model.keras            # Meilleur modèle — val_accuracy 95.7%
+│   ├── best_model.keras            # Meilleur modèle ResNet50 — val_accuracy 95.7%
 │   ├── final_model.keras           # Modèle final après fine-tuning
 │   ├── class_indices.json          # Mapping classes → indices
 │   ├── history.json                # Historique d'entraînement (courbes)
@@ -90,7 +88,7 @@ agri_classification/
 │       └── metrics.json
 │
 ├── src/
-│   ├── train.py                    # Entraînement Phase 1 + Fine-Tuning Phase 2
+│   ├── train.py                    # Entraînement ResNet50 Phase 1 + Fine-Tuning Phase 2
 │   ├── evaluate.py                 # Évaluation complète + 7 visualisations
 │   └── utils/
 │       └── preprocess.py           # Prétraitement + Grad-CAM + NDVI + inférence
@@ -183,10 +181,10 @@ streamlit run app.py
 
 | Onglet | Fonctionnalité |
 |--------|---------------|
-| 🔍 **Classification + Grad-CAM** | Upload image → prédiction + heatmap Grad-CAM + superposition |
+| 🔍 **Classification + Grad-CAM** | Upload image → prédiction ResNet50 + heatmap Grad-CAM + superposition |
 | 🌿 **NDVI** | Calcul NDVI + carte colorisée + vérification cohérence classe |
 | ⚠️ **Erreurs & Analyse** | Détection erreurs + patterns de confusion + causes |
-| 📊 **Analytiques Complets** | Matrice confusion + courbes + tableau comparatif CNN/ResNet/MobileNet |
+| 📊 **Analytiques Complets** | Matrice confusion + courbes + comparatif CNN vs ResNet50 |
 | 📋 **Historique** | Base SQLite + filtres + export CSV |
 
 ---
@@ -245,11 +243,11 @@ Dense(10, softmax)
 | Base model | ResNet50 (ImageNet weights) |
 | Input size | 224 × 224 × 3 |
 | Optimizer Phase 1 | Adam (lr=1e-3) |
-| Optimizer Phase 2 | Adam (lr=3e-4) |
+| Optimizer Phase 2 | Adam (lr=1e-4) |
 | Loss | Sparse Categorical Crossentropy |
 | Augmentation | Flip, Rotation, Zoom, Translation, Brightness |
 | Régularisation | Dropout (0.4 + 0.3) + BatchNormalization |
-| Paramètres total | ~2.6M (~10 MB) |
+| Paramètres total | ~25M (~96 MB) |
 
 ---
 
