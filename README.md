@@ -105,8 +105,8 @@ agri_classification/
 
 ```bash
 # 1. Cloner le repo
-git clone https://github.com/TahaELBASRY/eurosat-classification.git
-cd eurosat-classification
+git clone https://github.com/Mohammedali03/Classification-des-cultures-agricoles-partir-d-images-satellites.git
+cd Classification-des-cultures-agricoles-partir-d-images-satellites
 
 # 2. Créer un environnement virtuel
 python -m venv venv
